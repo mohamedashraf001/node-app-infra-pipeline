@@ -2,60 +2,56 @@ pipeline {
     agent any
 
     environment {
-        DOCKERHUB_USER = credentials('dockerhub-user')
-        DOCKERHUB_PASS = credentials('dockerhub-pass')
+        SSH_KEY = credentials('ec2-ssh-key')
+        DOCKER_IMAGE = 'mohamedashraf001/mymobackend:latest'
+        DOCKERHUB_CRED = 'dockerhub-credentials'
     }
 
     stages {
-
         stage('Checkout Code') {
             steps {
-                git branch: 'main', url: 'https://github.com/YOUR_USER/YOUR_REPO.git'
+                git branch: 'main', url: 'https://github.com/mohamedashraf001/node-app-infra-pipeline.git'
             }
         }
 
         stage('Build Docker Image') {
             steps {
                 script {
-                    sh """
-                    docker build -t ${DOCKERHUB_USER}/mymobackend:latest .
-                    """
+                    docker.build(DOCKER_IMAGE, '.')
                 }
-            }
-        }
-
-        stage('Login to DockerHub') {
-            steps {
-                sh """
-                echo "${DOCKERHUB_PASS}" | docker login -u "${DOCKERHUB_USER}" --password-stdin
-                """
             }
         }
 
         stage('Push Docker Image') {
             steps {
-                sh """
-                docker push ${DOCKERHUB_USER}/mymobackend:latest
-                """
+                script {
+                    docker.withRegistry('https://index.docker.io/v1/', DOCKERHUB_CRED) {
+                        docker.image(DOCKER_IMAGE).push()
+                    }
+                }
             }
         }
 
-        stage('Deploy Using Ansible') {
+        stage('Deploy on EC2') {
             steps {
-                sh """
-                cd infra/ansible
-                ansible-playbook -i inventory/hosts.ini deploy-backend.yml
-                """
+                sshagent(['ec2-ssh-key']) {
+                    sh '''
+                        ansible-playbook \
+                        -i ansible/inventory/hosts.ini \
+                        ansible/playbooks/deploy-backend.yml \
+                        -u ubuntu --private-key ~/.ssh/hi-key.pem
+                    '''
+                }
             }
         }
     }
 
     post {
         success {
-            echo "🚀 Deployment Done Successfully!"
+            echo '✅ Pipeline finished successfully!'
         }
         failure {
-            echo "❌ Deployment Failed!"
+            echo '❌ Pipeline failed!'
         }
     }
 }
