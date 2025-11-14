@@ -1,0 +1,61 @@
+pipeline {
+    agent any
+
+    environment {
+        DOCKERHUB_USER = credentials('dockerhub-user')
+        DOCKERHUB_PASS = credentials('dockerhub-pass')
+    }
+
+    stages {
+
+        stage('Checkout Code') {
+            steps {
+                git branch: 'main', url: 'https://github.com/YOUR_USER/YOUR_REPO.git'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    sh """
+                    docker build -t ${DOCKERHUB_USER}/mymobackend:latest .
+                    """
+                }
+            }
+        }
+
+        stage('Login to DockerHub') {
+            steps {
+                sh """
+                echo "${DOCKERHUB_PASS}" | docker login -u "${DOCKERHUB_USER}" --password-stdin
+                """
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                sh """
+                docker push ${DOCKERHUB_USER}/mymobackend:latest
+                """
+            }
+        }
+
+        stage('Deploy Using Ansible') {
+            steps {
+                sh """
+                cd infra/ansible
+                ansible-playbook -i inventory/hosts.ini deploy-backend.yml
+                """
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "🚀 Deployment Done Successfully!"
+        }
+        failure {
+            echo "❌ Deployment Failed!"
+        }
+    }
+}

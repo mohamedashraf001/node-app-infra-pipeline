@@ -1,0 +1,29 @@
+- name: Update package list
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Install Docker
+  apt:
+    name: docker.io
+    state: present
+
+- name: Install Docker Compose
+  apt:
+    name: docker-compose
+    state: present
+
+- name: Start and enable Docker service
+  systemd:
+    name: docker
+    state: started
+    enabled: yes
+
+- name: Run Backend Container
+  docker_container:
+    name: node-backend
+    image: mohamedashraf001/mymobackend:latest
+    state: started
+    restart_policy: always
+    published_ports:
+      - "5000:3000"
