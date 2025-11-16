@@ -15,5 +15,5 @@ variable "ubuntu_ami" {
 
 variable "my_ip" {
   type    = string
-  default = "156.202.63.79/32"
+  default = "156.202.48.102/32"
 }
