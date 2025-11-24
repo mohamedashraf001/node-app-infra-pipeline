@@ -35,18 +35,18 @@ pipeline {
             }
         }
 
-        stage('Deploy on EC2') {
-            steps {
-                echo "🖥️ Deploying on EC2 via Ansible..."
-                sshagent(['ec2-ssh-key']) {
-                    sh '''
-                        ansible-playbook -i ansible/inventory/hosts.ini \
-                        ansible/playbooks/deploy-backend.yml -u ubuntu
-                    '''
-                }
-            }
+   stage('Deploy on EC2') {
+    steps {
+        echo "🖥️ Deploying on EC2 via Ansible..."
+        sshagent(['ec2-ssh-key']) {
+            sh '''
+                docker run --rm -v $PWD:/ansible -w /ansible ansible/ansible:latest \
+                ansible-playbook -i ansible/inventory/hosts.ini ansible/playbooks/deploy-backend.yml -u ubuntu
+            '''
         }
     }
+}
+
 
     post {
         success {
