@@ -34,24 +34,21 @@ pipeline {
             }
         }
 
-        stage('Deploy Docker on EC2') {
-            steps {
-                sshagent(['ec2-ssh-key']) {
-                    sh """
-                    ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} '
-                        echo "Stopping old container if exists..."
-                        docker stop myapp || true
-                        docker rm myapp || true
-                        echo "Pulling latest image..."
-                        docker pull ${DOCKER_IMAGE}
-                        echo "Starting new container..."
-                        docker run -d --name myapp -p 3000:3000 --restart unless-stopped ${DOCKER_IMAGE}
-                        echo "Deployment complete!"
-                    '
-                    """
-                }
-            }
+     stage('Deploy Docker on EC2') {
+    steps {
+        sshagent(['ec2-ssh-key']) {   // uses the Jenkins SSH credential
+            sh """
+            ssh -o StrictHostKeyChecking=no ubuntu@${EC2_HOST} "bash -c '
+                docker stop myapp || true &&
+                docker rm myapp || true &&
+                docker pull ${DOCKER_IMAGE} &&
+                docker run -d --name myapp -p 3000:3000 --restart unless-stopped ${DOCKER_IMAGE}'
+            "
+            """
         }
+    }
+}
+
     }
 
     post {
