@@ -2,9 +2,11 @@ pipeline {
     agent any
 
     environment {
-        SSH_KEY = credentials('ec2-ssh-key')
-        DOCKER_IMAGE = 'mohamedashraf001/mymobackend:latest'
-        DOCKERHUB_CRED = 'dockerhub-credentials'
+        SSH_KEY = credentials('ec2-ssh-key')          
+        DOCKER_IMAGE = 'mohamedashraf001/mymobackend:latest'  
+        DOCKERHUB_CRED = 'dockerhub-credentials'    
+        EC2_USER = 'ubuntu'                           
+        EC2_HOST = '18.207.102.132'              
     }
 
     stages {
@@ -32,13 +34,21 @@ pipeline {
             }
         }
 
-        stage('Deploy on EC2') {
+        stage('Deploy Docker on EC2') {
             steps {
                 sshagent(['ec2-ssh-key']) {
-                    sh '''
-                        ansible-playbook -i ansible/inventory/hosts.ini \
-                        ansible/playbooks/deploy-backend.yml -u ubuntu
-                    '''
+                    sh """
+                    ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} '
+                        echo "Stopping old container if exists..."
+                        docker stop myapp || true
+                        docker rm myapp || true
+                        echo "Pulling latest image..."
+                        docker pull ${DOCKER_IMAGE}
+                        echo "Starting new container..."
+                        docker run -d --name myapp -p 3000:3000 --restart unless-stopped ${DOCKER_IMAGE}
+                        echo "Deployment complete!"
+                    '
+                    """
                 }
             }
         }
