@@ -15,11 +15,11 @@ pipeline {
             }
         }
 
-        stage('Build Docker Image') {
+     stage('Build Docker Image') {
             steps {
                 script {
                     echo "📦 Building Docker image..."
-                    docker.build(DOCKER_IMAGE, '.')
+                    sh 'DOCKER_BUILDKIT=0 docker build -t mohamedashraf001/mymobackend:latest .'
                 }
             }
         }
